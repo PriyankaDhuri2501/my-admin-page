@@ -1,36 +1,39 @@
-// src/pages/api/users.ts
 import { NextApiRequest, NextApiResponse } from "next";
 import { connectToDatabase } from "../../utils/mongodb";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 
-// User interface
-interface User {
-  name: string;
-  role: "admin" | "user";
-}
+const SECRET_KEY = process.env.JWT_SECRET || "your_secret_key"; 
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { method } = req;
-  const db = await connectToDatabase();
-  const usersCollection = db.collection("users");
+  
+  if (method === "POST") {
+    const { name, email, password, role } = req.body;
 
-  if (method === "GET") {
-    // Retrieve both users and admins from the database
-    try {
-      const users = await usersCollection.find({}).toArray();
-      res.status(200).json(users);
-    } catch (error) {
-      res.status(500).json({ message: "Error fetching users" });
+    if (!name || !email || !password || !role) {
+      return res.status(400).json({ message: "All fields are required" });
     }
-  } else if (method === "POST") {
-    // Add a new user or admin
-    const newUser: User = req.body;
+
     try {
+      const { db } = await connectToDatabase();
+      const usersCollection = db.collection("users");
+
+      const existingUser = await usersCollection.findOne({ email });
+      if (existingUser) {
+        return res.status(400).json({ message: "User already exists" });
+      }
+
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      const newUser = { name, email, password: hashedPassword, role };
       await usersCollection.insertOne(newUser);
-      res.status(201).json(newUser);
+
+      res.status(201).json({ message: "User created successfully", user: newUser });
     } catch (error) {
       res.status(500).json({ message: "Error adding user" });
     }
   } else {
-    res.status(405).end(); // Method Not Allowed
+    res.status(405).end();
   }
 }

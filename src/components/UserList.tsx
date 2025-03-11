@@ -1,12 +1,15 @@
-// src/components/UserList.tsx
 import React from "react";
 import { User } from "../types/user";
 
 interface UserListProps {
-  users: User[];
+  users: User[] | null | undefined;
 }
 
 const UserList: React.FC<UserListProps> = ({ users }) => {
+  if (!Array.isArray(users)) {
+    return <p>No users available.</p>;
+  }
+
   return (
     <div>
       <ul>

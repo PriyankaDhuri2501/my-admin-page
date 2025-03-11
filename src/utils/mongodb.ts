@@ -1,18 +1,29 @@
-// src/utils/mongodb.ts
-import { MongoClient } from "mongodb";
+import { MongoClient, Db } from "mongodb";
 
-// This will be our MongoDB connection URI
-const uri = process.env.MONGODB_URI || "your-mongodb-uri-here"; // Replace with your MongoDB URI
+const MONGODB_URI = process.env.MONGODB_URI || "your_mongodb_connection_string";
+const MONGODB_DB = process.env.MONGODB_DB || "your_database_name";
 
-// Connect to MongoDB
-export const connectToDatabase = async () => {
-  const client = new MongoClient(uri);
+if (!MONGODB_URI) {
+  throw new Error("Please define the MONGODB_URI environment variable inside .env.local");
+}
 
-  try {
-    await client.connect();
-    const db = client.db("admin"); // Database name
-    return db;
-  } catch (error) {
-    throw new Error("MongoDB connection failed.");
+if (!MONGODB_DB) {
+  throw new Error("Please define the MONGODB_DB environment variable inside .env.local");
+}
+
+let cachedClient: MongoClient | null = null;
+let cachedDb: Db | null = null;
+
+export async function connectToDatabase() {
+  if (cachedClient && cachedDb) {
+    return { client: cachedClient, db: cachedDb };
   }
-};
+
+  const client = await MongoClient.connect(MONGODB_URI);
+  const db = client.db(MONGODB_DB);
+
+  cachedClient = client;
+  cachedDb = db;
+
+  return { client, db };
+}
