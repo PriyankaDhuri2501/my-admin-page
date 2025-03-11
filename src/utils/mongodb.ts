@@ -16,14 +16,23 @@ let cachedDb: Db | null = null;
 
 export async function connectToDatabase() {
   if (cachedClient && cachedDb) {
+    console.log("Using cached database connection"); // ✅ Add this for debugging
     return { client: cachedClient, db: cachedDb };
   }
 
-  const client = await MongoClient.connect(MONGODB_URI);
-  const db = client.db(MONGODB_DB);
+  console.log("Connecting to MongoDB..."); // ✅ Debugging line
 
-  cachedClient = client;
-  cachedDb = db;
+  try {
+    const client = await MongoClient.connect(MONGODB_URI);
+    const db = client.db(MONGODB_DB);
 
-  return { client, db };
+    cachedClient = client;
+    cachedDb = db;
+
+    console.log("Connected to MongoDB:", MONGODB_DB); // ✅ Debugging line
+    return { client, db };
+  } catch (error) {
+    console.error("MongoDB connection error:", error); // ✅ Catch connection errors
+    throw new Error("Failed to connect to MongoDB");
+  }
 }
